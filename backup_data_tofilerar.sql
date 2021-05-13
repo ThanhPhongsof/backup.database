@@ -18,7 +18,10 @@ begin
    declare @rmdate varchar(100) = convert(varchar, getdate() - @intDate, 104)-- Xóa file dữ liệu theo số ngày khai báo
    declare @Bkpath varchar(100)
    declare @Bkrm   varchar(100)
+   declare @Pathrm varchar(200) = @BackupPath
+   declare @SubjectMail	varchar(500)
    begin
+      set @Pathrm = @BackupPath
 	  set @BackupPath = @BackupPath + '\' + @DatabaseName + '\'
 
 	  set @Bkpath = @BackupPath + '\' + @bkdate
@@ -29,6 +32,7 @@ begin
 
       set @SQLText= 'Backup database [' + @DatabaseName + '] to disk ='''+@Bkpath + '\' + @DatabaseName + '.bak'' with compression,copy_only'
       set @CompressionCommand='"C:\Program Files\WinRAR\rar.exe" a -v'+Convert(varchar,@FileSize)+'M ' + @Bkpath + '\' + @DatabaseName +'.rar '+ @Bkpath + '\'+@DatabaseName + '.bak'
+	  set @SubjectMail = @DatabaseName + 'HVNET - Notification Backup Database Failed'
    end
 
 	BEGIN TRY
@@ -36,13 +40,14 @@ begin
 	   exec sp_executesql @SQLText
 	   exec xp_cmdshell @CompressionCommand
 	   exec xp_cmdshell @cmdrmpath, no_output
+	   exec delete_filebak @DatabaseName, @Pathrm
 	END TRY
 	BEGIN CATCH
 		exec msdb.dbo.sp_send_dbmail
-			 @profile_name = 'profie.sendemail',						-- Thông tin tài khoản và máy chủ đã cài dặt
-			 @recipients = 'ttphongletter@gmail.com',					-- CC email, nhập nhiều email cách nhau bằng dấu ','
-			 @body = ERROR_MESSAGE,										-- Nội dung lỗi
-			 @subject = 'HVNET - Notification Backup Database Failed';	-- Tiêu đề email
+			 @profile_name = 'profile.sendemail',											-- Thông tin tài khoản và máy chủ đã cài dặt
+			 @recipients = 'ttphongletter@gmail.com,ntd.liv282@gmail.com',					-- CC email, nhập nhiều email cách nhau bằng dấu ','
+			 @body = ERROR_MESSAGE,															-- Nội dung lỗi
+			 @subject = @SubjectMail;														-- Tiêu đề email
 	END CATCH;
 end
 
