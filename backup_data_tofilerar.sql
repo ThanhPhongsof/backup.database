@@ -5,7 +5,7 @@ GO
 create proc backup_data_tofilerar
    @DatabaseName varchar(max),												-- Database Backup
    @BackupPath   varchar(max),												-- Thư mục Backup dữ liệu
-   @FileSize	 int,														-- Số lương size Backup
+   @FileSize	 int	= 10,														-- Số lương size Backup
    @intDate		 int = 15													-- Số ngày khai báo
 as
 begin
@@ -20,33 +20,49 @@ begin
    declare @Bkrm   varchar(100)
    declare @Pathrm varchar(200) = @BackupPath
    declare @SubjectMail	varchar(500)
+   declare @ERROR_MESSAGE varchar(max)
    begin
       set @Pathrm = @BackupPath
 	  set @BackupPath = @BackupPath + '\' + @DatabaseName + '\'
 
+	  --	Biến tạo thư mục backup
 	  set @Bkpath = @BackupPath + '\' + @bkdate
 	  set @cmdpath	  = 'MD ' +@Bkpath
 
+	  --	Xóa thư mục 15 ngày trước đó
 	  set @Bkrm = @BackupPath + '\' + @rmdate
 	  set @cmdrmpath  = 'RMDIR ' +@Bkrm + ' /S /Q'
 
+	  --	Lệnh Winwar file BAK
       set @SQLText= 'Backup database [' + @DatabaseName + '] to disk ='''+@Bkpath + '\' + @DatabaseName + '.bak'' with compression,copy_only'
       set @CompressionCommand='"C:\Program Files\WinRAR\rar.exe" a -v'+Convert(varchar,@FileSize)+'M ' + @Bkpath + '\' + @DatabaseName +'.rar '+ @Bkpath + '\'+@DatabaseName + '.bak'
 	  set @SubjectMail = @DatabaseName + 'HVNET - Notification Backup Database Failed'
    end
 
 	BEGIN TRY
+
+		--	Lệnh tạo thư mục
 	   exec xp_cmdshell @cmdpath
+
+	   --	Lệnh backup
 	   exec sp_executesql @SQLText
+
+	   --	Lệnh nén thành WinRAr
 	   exec xp_cmdshell @CompressionCommand
+
+	   --	Xóa thư mục 15 ngày trước đó
 	   exec xp_cmdshell @cmdrmpath, no_output
+
+	   --	Xóa file BAK
 	   exec delete_filebak @DatabaseName, @Pathrm
+
 	END TRY
 	BEGIN CATCH
+		set @ERROR_MESSAGE = ERROR_MESSAGE()
 		exec msdb.dbo.sp_send_dbmail
 			 @profile_name = 'profile.sendemail',											-- Thông tin tài khoản và máy chủ đã cài dặt
-			 @recipients = 'ttphongletter@gmail.com,ntd.liv282@gmail.com',					-- CC email, nhập nhiều email cách nhau bằng dấu ','
-			 @body = ERROR_MESSAGE,															-- Nội dung lỗi
+			 @recipients = 'ttphongletter@gmail.com;ntd.liv282@gmail.com',					-- CC email, nhập nhiều email cách nhau bằng dấu ','
+			 @body = @ERROR_MESSAGE,															-- Nội dung lỗi
 			 @subject = @SubjectMail;														-- Tiêu đề email
 	END CATCH;
 end
@@ -64,4 +80,4 @@ end
 --RECONFIGURE;  
 --GO
 
---exec backup_data_tofilerar 'test','D:\Backups',1						-- Lệnh chạy mẫu
+--exec backup_data_tofilerar 'audio.rodbooks','E:\OneDrive\BackupDungNT\database\Daily',15						-- Lệnh chạy mẫu

@@ -3,8 +3,8 @@
 GO
 
 create proc backup_multi_data
-   @BackupPath   varchar(max),												-- Thư mục Backup dữ liệu
-   @FileSize	 int,														-- Số lương size Backup
+   @BackupPath   varchar(max) = 'E:\OneDrive\BackupDungNT\database\Daily',												-- Thư mục Backup dữ liệu
+   @FileSize	 int = 200,													-- Số lương size Backup
    @intDate		 int = 15													-- Số ngày khai báo
 as
 begin
@@ -14,6 +14,10 @@ begin
 	SELECT name 
 	FROM master.sys.databases 
 	WHERE name NOT IN ('master','model','msdb','tempdb') 
+		and name not in ('a3shop.vn', 'chuahetdaukhop.com.bak','Collaborators', 'dactri.hvnet.vn','DaNang.Lamdeptainha.vn', 'giumaituoixuan.com', 'HaNoi.Lamdeptainha.vn'
+		,'HVNet','HVNetEMS','HVNetLog','hvnetportal','imua.com.vn','mpad.hvnet.vn','newdytructuyen','System.Antimos.vn','system.trung360.com','trigoutnano.com'
+		, 'trihetbenhtainha.com2018', 'trihetmuntainha.com2018')
+		--and name = 'WebTMDT'
 		  AND state = 0
 		  AND is_in_standby = 0
  
